@@ -1,23 +1,48 @@
-import {createClient} from "@supabase/supabase-js";
-import {supabase} from "../config/supabase.js"
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+import ws from "ws";
+
+dotenv.config({
+    path: './.env'
+});
+
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY,
+    {
+        realtime: {
+            transport: ws
+        }
+    }
+);
 
 const connectDB = async () => {
-    try{
-        const {data, error} = await supabase
-        .from("users")
-        .select("*")
-        .limit(1);
+    try {
 
-        if(error) throw error;
+        const { data, error } = await supabase
+            .from("users")
+            .select("*")
+            .limit(1);
 
-        console.log("Supabase Connected!!")
-    }catch(error){
+        if (error) {
+            throw error;
+        }
+
+        console.log("Supabase connected successfully");
+
+    } catch (error) {
+
         console.log(
-            "Supabase connection FAILEDA",
-             error.message
+            "Supabase connection FAILED",
+            error.message
         );
+
         process.exit(1);
     }
-}
-export {supabase}
+};
+
+export {
+    supabase
+};
+
 export default connectDB;
