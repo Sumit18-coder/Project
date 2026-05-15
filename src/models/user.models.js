@@ -53,3 +53,16 @@ export const updateRefreshToken = async (
         
         return data;
 }
+
+export const getUserByUsernameOrEmail = async (username, email) => {
+    const {data, error} = await supabase
+        .from('users')
+        .select('*')
+        .or(`username.eq.${username},email.eq.${email}`)
+        .maybeSingle();
+
+
+        if(error) throw error;
+
+        return data;
+};      
