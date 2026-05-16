@@ -1,4 +1,4 @@
-import { v2 } from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 import fs from "fs"
 
 cloudinary.config({
@@ -23,7 +23,7 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 }
 
-cloudinary.v2.uploader.upload("https://commons.wikimedia.org/wiki/File:Flag_of_India.svg",
+cloudinary.uploader.upload("https://commons.wikimedia.org/wiki/File:Flag_of_India.svg",
   {
     public_id: "flag_of_india"
   },
