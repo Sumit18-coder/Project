@@ -17,8 +17,14 @@ app.use(cookieParser())
 //routes import
 import userRouter from "./routes/user.routes.js"
 
+//error middleware import
+import { errorHandler} from "./middlewares/error.middleware.js"
+
 //routes declaration
 //http://localhost:8000/api/v1/users/register
 app.use("/api/v1/users",userRouter)
+
+//after routes
+app.use(errorHandler)
 
 export {app}

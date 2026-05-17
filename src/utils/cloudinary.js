@@ -15,19 +15,20 @@ const uploadOnCloudinary = async (localFilePath) => {
       resource_type: "auto"
     })
     //file has been uploaded successfully
-    console.log("file is uploaded on cloudinary", response.url);
+    // console.log("file is uploaded on cloudinary", response.url);
+    fs.unlinkSync(localFilePath)
+    
     return response;
   } catch (error) {
-    fs.unlinkSync(localFilePath); //remove the locally save temporary file as the upload operation got failed
+    if (localFilePath && fs.existsSync(localFilePath)) {
+      fs.unlinkSync(localFilePath);
+    } //remove the locally save temporary file as the upload operation got failed
+
+    console.log("Cloudinary Error: ", error);
     return null;
   }
 }
 
-cloudinary.uploader.upload("https://commons.wikimedia.org/wiki/File:Flag_of_India.svg",
-  {
-    public_id: "flag_of_india"
-  },
-  function (error, result) { console.log(result); }
-);
+
 
 export { uploadOnCloudinary };
