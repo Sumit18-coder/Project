@@ -4,6 +4,25 @@ import { createUser, getUserByUsernameOrEmail, getUserById } from '../models/use
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import bcrypt from "bcrypt";
+import supabase from "../../config/supabase.js";
+
+const generateAccessAndRefreshTokens = async(userId) => {
+    try{
+       const {data: user, error} = await supabase
+             .from("users")
+             .select("*")
+             .eq("id",userId)
+             .single()
+
+        if(error || !user){
+            throw new ApiError(404, "User not found")
+        }
+
+        //generate access token
+    }catch (error){
+        throw new ApiError(500, "Something went wrong while generating refresh and access tokens")
+    }
+}
 
 const registerUser = asyncHandler(async (req, res) => {
     //get user details from frontend
@@ -97,4 +116,47 @@ const registerUser = asyncHandler(async (req, res) => {
 
 })
 
-export { registerUser }
+const loginUser = asyncHandler(async (req,res) => {
+    //take data from req body(req body -> data)
+    //login using username or email
+    //find the user
+    //if user exist then password check
+    //generate access and refresh token and send it to user
+    //send in form of cookies
+
+
+    const {email, username, password} = req.body
+
+    if(!username || !email){
+        throw new ApiError(400,"username or email is required")
+    }
+    
+    const {data: users, error} = await supabase
+        .from("users")
+        .select("*")
+        .or(`username.eq.${username},email.eq.${email}`);
+
+    if(error){
+        throw new ApiError(500, error.message);
+    }
+    
+    const user = users?.[0];
+
+    if(!user){
+       throw new ApiError(404, "User does not exist");
+    }
+
+    //password check
+    const isPasswordValid = await bcrypt.compare(
+        password,
+        user.password
+    )
+
+    if(!isPasswordValid){
+        throw new ApiError(401, "Invalid user credentials")
+    }
+     
+
+})
+
+export { registerUser, loginUser }
