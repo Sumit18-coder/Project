@@ -1,25 +1,66 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { createUser, getUserByUsernameOrEmail, getUserById } from '../models/user.models.js'
+import { createUser, getUserByUsernameOrEmail, getUserById, getSafeUserById, updateRefreshToken } from '../models/user.models.js'
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import bcrypt from "bcrypt";
 import supabase from "../../config/supabase.js";
 
-const generateAccessAndRefreshTokens = async(userId) => {
-    try{
-       const {data: user, error} = await supabase
-             .from("users")
-             .select("*")
-             .eq("id",userId)
-             .single()
+const generateAccessAndRefreshTokens = async (userId) => {
+    try {
+        const { data: user, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", userId)
+            .single()
 
-        if(error || !user){
+        if (error || !user) {
             throw new ApiError(404, "User not found")
         }
 
         //generate access token
-    }catch (error){
+        const accessToken = jwt.sign(
+            {
+                id: user.id,
+                email: user.email,
+                username: user.username
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            {
+                expiresIn: process.env.ACCESS_TOKEN_SECRET
+            }
+        )
+
+        //generate refresh token
+        const refreshToken = jwt.sign(
+            {
+                id: user.id
+            },
+            process.env.REFRESH_TOKEN_SECRET,
+            {
+                expiresIn: process.env.REFRESH_TOKEN_SECRET
+            }
+        )
+        //save refresh token in db
+        const { error: updateError } = await supabase
+            .from("users")
+            .update({
+                refresh_token: refreshToken
+            })
+            .eq("id", user.id);
+
+        if (updateError) {
+            throw new ApiError(
+                500,
+                "Failed to save refresh token"
+            )
+        }
+
+        return {
+            accessToken,
+            refreshToken
+        }
+    } catch (error) {
         throw new ApiError(500, "Something went wrong while generating refresh and access tokens")
     }
 }
@@ -73,7 +114,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const avatar = await uploadOnCloudinary(avatarLocalPath);
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
-   //if avatar is not uploaded, then throw an error
+    //if avatar is not uploaded, then throw an error
     if (!avatar) {
         throw new ApiError(400, "Avatar file is required")
     }
@@ -97,7 +138,7 @@ const registerUser = asyncHandler(async (req, res) => {
     } = user;
 
     const createdUser = await getUserById(user.id);
-   
+
     //if user is not created, then throw an error else return success
     if (!createdUser) {
         throw new ApiError(
@@ -116,7 +157,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 })
 
-const loginUser = asyncHandler(async (req,res) => {
+const loginUser = asyncHandler(async (req, res) => {
     //take data from req body(req body -> data)
     //login using username or email
     //find the user
@@ -125,25 +166,25 @@ const loginUser = asyncHandler(async (req,res) => {
     //send in form of cookies
 
 
-    const {email, username, password} = req.body
+    const { email, username, password } = req.body
 
-    if(!username || !email){
-        throw new ApiError(400,"username or email is required")
+    if (!username || !email) {
+        throw new ApiError(400, "username or email is required")
     }
-    
-    const {data: users, error} = await supabase
+
+    const { data: users, error } = await supabase
         .from("users")
         .select("*")
         .or(`username.eq.${username},email.eq.${email}`);
 
-    if(error){
+    if (error) {
         throw new ApiError(500, error.message);
     }
-    
+
     const user = users?.[0];
 
-    if(!user){
-       throw new ApiError(404, "User does not exist");
+    if (!user) {
+        throw new ApiError(404, "User does not exist");
     }
 
     //password check
@@ -152,11 +193,60 @@ const loginUser = asyncHandler(async (req,res) => {
         user.password
     )
 
-    if(!isPasswordValid){
+    if (!isPasswordValid) {
         throw new ApiError(401, "Invalid user credentials")
     }
-     
 
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
+
+    //get safe user
+    const loggedInUser = (await getSafeUserById(user.id))
+        .select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,//status code
+                //data
+                {
+                    user: loggedInUser,
+                    accessToken,
+                    refreshToken
+                },
+                "User logged in Successfully"//message
+            )
+        )
 })
 
-export { registerUser, loginUser }
+const logoutUser = asyncHandler(async (req, res) => {
+    await updateRefreshToken(
+        req.user.id,
+        null
+    )
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "User logged out"
+            )
+        )
+})
+
+export { registerUser, loginUser, logoutUser }
