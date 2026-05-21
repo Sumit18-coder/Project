@@ -1,4 +1,5 @@
 import supabase from '../../config/supabase.js';
+import bcrypt from "bcrypt";
 
 export const createUser = async (userData) => {
     const { data, error } = await supabase
@@ -87,4 +88,39 @@ export const getSafeUserById = async (id) => {
     if (error) throw error;
 
     return data;
+}
+
+export const isPasswordCorrect = async (
+    enteredPassword,
+    hashedPassword
+) => {
+    return await bcrypt.compare(
+        enteredPassword,
+        hashedPassword
+    )
+}
+
+export const updateUserById = async (
+    id,
+    updateData
+) => {
+    const { data, error } = await supabase
+        .from("users")
+        .update(updateData)
+        .eq("id", id)
+        .select(`
+            id,
+            username,
+            email,
+            fullname,
+            avatar,
+            cover_image,
+            created_at,
+            updated_at
+        `)
+        .single()
+
+    if(error) throw error
+
+    return data
 }
