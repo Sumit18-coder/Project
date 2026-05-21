@@ -1,6 +1,6 @@
-import supabase from "../../config/supabase";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
+import supabase from "../../config/supabase.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import { getUserById } from "../models/user.models.js"
 
