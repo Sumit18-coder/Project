@@ -526,5 +526,57 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         )
 })
 
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const { data: watchHistory, error } = await supabase
+        .from("watch_history")
+        .select(`
+            id,
+            watch_at,
+            
+            video: video_id (
+                id,
+                title,
+                description,
+                thumbnail,
+                video_file,
+                views,
+                created_at,
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser, changeCurrentPassword, updateAccountDetails, updateUserAvatar, updateCoverImage, getUserChannelProfile }
+                owner(
+                   id,
+                   fullname,
+                   username,
+                   avatar
+                )
+            )
+        `)
+        .eq("user_id", req.user?.id)
+        .order("watch_at", {
+            ascending: false
+        })
+
+        if(error){
+            throw new ApiError(
+                500,
+                error.message
+            )
+        }
+
+        //extract only videos
+        const videos = watchHistory.map(
+            item => item.video
+        )
+
+        return res
+              .status(200)
+              .json(
+                new ApiResponse(
+                    200,
+                    videos,
+                    "Watch history fetched successfully"
+                )
+              )
+})
+
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser, changeCurrentPassword, updateAccountDetails, updateUserAvatar, updateCoverImage, getUserChannelProfile, getWatchHistory }
