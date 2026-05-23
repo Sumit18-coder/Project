@@ -6,6 +6,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import bcrypt from "bcrypt";
 import supabase from "../../config/supabase.js";
 import jwt from "jsonwebtoken"
+import cookieParser from "cookie-parser"
+import { comparePassword, hashPassword } from "../utils/auth.js"
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -253,91 +255,163 @@ const logoutUser = asyncHandler(async (req, res) => {
         )
 })
 
-const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken
+const refreshAccessToken = asyncHandler(
+    async (req, res) => {
 
-    if (!incomingRefreshToken) {
-        throw new ApiError(
-            401,
-            "unauthorized request"
-        )
-    }
+        // get refresh token from cookies or body
+        const incomingRefreshToken =
+            req.cookies.refreshToken ||
+            req.body.refreshToken
 
-    try {
-        const decodedToken = jwt.verify(
-            incomingRefreshToken,
-            process.env.REFRESH_TOKEN_SECRET
-        )
-
-        const user = await getUserById(decodedToken?.id);
-
-        if (!user) {
+        // check token exists
+        if (!incomingRefreshToken) {
             throw new ApiError(
                 401,
+                "Unauthorized request"
+            )
+        }
+
+        try {
+
+            // verify token
+            const decodedToken = jwt.verify(
+                incomingRefreshToken,
+                process.env.REFRESH_TOKEN_SECRET
+            )
+
+            // get user from database
+            const user = await getUserById(
+                decodedToken?.id
+            )
+
+            if (!user) {
+                throw new ApiError(
+                    401,
+                    "Invalid refresh token"
+                )
+            }
+
+            // compare with DB token
+            if (
+                incomingRefreshToken !==
+                user.refresh_token
+            ) {
+                throw new ApiError(
+                    401,
+                    "Refresh token is expired or used"
+                )
+            }
+
+            // generate new tokens
+            const {
+                accessToken,
+                refreshToken
+            } = await generateAccessAndRefreshTokens(
+                user.id
+            )
+
+            const options = {
+                httpOnly: true,
+                secure: true
+            }
+
+            return res
+                .status(200)
+                .cookie(
+                    "accessToken",
+                    accessToken,
+                    options
+                )
+                .cookie(
+                    "refreshToken",
+                    refreshToken,
+                    options
+                )
+                .json(
+                    new ApiResponse(
+                        200,
+                        {
+                            accessToken,
+                            refreshToken
+                        },
+                        "Access token refreshed successfully"
+                    )
+                )
+
+        } catch (error) {
+
+            throw new ApiError(
+                401,
+                error?.message ||
                 "Invalid refresh token"
             )
         }
+    })
 
-        if (incomingRefreshToken !== user?.refreshToken) {
+const changeCurrentPassword = asyncHandler(
+    async (req, res) => {
+
+        const {
+            oldPassword,
+            newPassword
+        } = req.body
+
+        // validation here
+        if (!oldPassword || !newPassword) {
             throw new ApiError(
-                401,
-                "Refresh token is expired or used"
+                400,
+                "Old password and new password are required"
             )
         }
 
-        const options = {
-            httpOnly: true,
-            secure: true
+        const user = await getUserById(
+            req.user.id
+        )
+
+        if (!user) {
+            throw new ApiError(
+                404,
+                "User not found"
+            )
         }
 
-        const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user.id)
+        const isPasswordValid =
+            await comparePassword(
+                oldPassword,
+                user.password
+            )
+
+        if (!isPasswordValid) {
+            throw new ApiError(
+                400,
+                "Invalid password"
+            )
+        }
+
+        // hash new password
+        const hashedPassword =
+            await hashPassword(
+                newPassword
+            )
+
+        // update password
+        await updateUserById(
+            req.user.id,
+            {
+                password: hashedPassword
+            }
+        )
 
         return res
             .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", newRefreshToken, options)
             .json(
                 new ApiResponse(
                     200,
-                    { accessToken, refreshToken: newRefreshToken },
-                    "Access token refreshed"
+                    {},
+                    "Password changed successfully"
                 )
             )
-    } catch (error) {
-        throw new ApiError(
-            401,
-            error?.message || "invalid refresh token"
-        )
-    }
-
-})
-
-const changeCurrentPassword = asyncHandler(async (req, res) => {
-    const { oldPassword, newPassword } = req.body
-
-    const user = await getUserById(user.id)
-    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
-
-    if (!isPasswordCorrect) {
-        throw new ApiError(
-            400,
-            "Invalid password"
-        )
-    }
-    user.password = newPassword
-    await user.save({ validateBeforeSave: false })
-
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                {},
-                "Password changed successfully"
-            )
-        )
-
-})
+    })
 
 const getCurrentUser = asyncHandler(async (req, res) => {
     return res
@@ -452,6 +526,9 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
     const { username } = req.params
+    console.log("REQ PARAMS =>", req.params);
+    console.log("USERNAME =>", username);
+    console.log("USERNAME LOWERCASE =>", username?.toLowerCase());
     if (!username?.trim()) {
         throw new ApiError(
             400,
@@ -472,6 +549,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         `)
         .eq("username", username.toLowerCase())
         .single()
+
+    console.log("CHANNEL =>", channel, "ERROR =>", channelError);
 
     if (channelError || !channel) {
         throw new ApiError(
@@ -555,27 +634,27 @@ const getWatchHistory = asyncHandler(async (req, res) => {
             ascending: false
         })
 
-        if(error){
-            throw new ApiError(
-                500,
-                error.message
-            )
-        }
-
-        //extract only videos
-        const videos = watchHistory.map(
-            item => item.video
+    if (error) {
+        throw new ApiError(
+            500,
+            error.message
         )
+    }
 
-        return res
-              .status(200)
-              .json(
-                new ApiResponse(
-                    200,
-                    videos,
-                    "Watch history fetched successfully"
-                )
-              )
+    //extract only videos
+    const videos = watchHistory.map(
+        item => item.video
+    )
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                videos,
+                "Watch history fetched successfully"
+            )
+        )
 })
 
 

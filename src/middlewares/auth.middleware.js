@@ -4,45 +4,57 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import { getUserById } from "../models/user.models.js"
 
-export const verifyJwt = asyncHandler(async (req, _, next) => {
-    try {
-        const token = req.cookies?.accessToken ||
-            req.header("Authorization")?.replace("Bearer", "")
+export const verifyJwt = asyncHandler(
+    async (req, _, next) => {
 
-        if (!token) {
-            throw new ApiError(401, "Unauthorized request")
-        }
+        try {
 
-        //verify token
-        const decodedToken = jwt.verify(
-            token,
-            process.env.ACCESS_TOKEN_SECRET)
+            const token =
+                req.cookies?.accessToken ||
+                req.header("Authorization")
+                    ?.replace("Bearer ", "")
 
-        //Postgre uses id
-        const user = await getUserById(
-            decodedToken?.id
-        )
+            if (!token) {
+                throw new ApiError(
+                    401,
+                    "Unauthorized request"
+                )
+            }
 
-        //if user is not there
-        if(!user){
+            // verify token
+            const decodedToken =
+                jwt.verify(
+                    token,
+                    process.env
+                        .ACCESS_TOKEN_SECRET
+                )
+
+            const user =
+                await getUserById(
+                    decodedToken?.id
+                )
+
+            if (!user) {
+                throw new ApiError(
+                    401,
+                    "Invalid access token"
+                )
+            }
+
+            // remove sensitive fields
+            delete user.password
+            delete user.refresh_token
+
+            req.user = user
+
+            next()
+
+        } catch (error) {
+
             throw new ApiError(
                 401,
-                "Invalid Access token"
+                error?.message ||
+                "Invalid access token"
             )
         }
-
-        //remove sensitive fields
-        delete user.password;
-        delete user.refresh_token;
-
-        req.user = user;
-
-        next();
-    }catch(error){
-        throw new ApiError(
-            401,
-            error?.message || //throw error message
-            "Invalid access token"
-        )
-    }
 })

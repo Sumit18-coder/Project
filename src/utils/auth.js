@@ -22,7 +22,7 @@ export const generateAccessToken = (user) => {
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
-            experiesIn: process.env.ACCESS_TOKEN_EXPIRY
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )
 }
@@ -34,7 +34,7 @@ export const generateRefreshToken = (user) => {
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
-            experiesIn: process.env.REFRESH_TOKEN_EXPIRY
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         }
     )
 }
