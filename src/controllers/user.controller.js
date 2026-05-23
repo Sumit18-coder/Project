@@ -526,9 +526,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
     const { username } = req.params
-    console.log("REQ PARAMS =>", req.params);
-    console.log("USERNAME =>", username);
-    console.log("USERNAME LOWERCASE =>", username?.toLowerCase());
+    
     if (!username?.trim()) {
         throw new ApiError(
             400,
@@ -549,8 +547,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         `)
         .eq("username", username.toLowerCase())
         .single()
-
-    console.log("CHANNEL =>", channel, "ERROR =>", channelError);
 
     if (channelError || !channel) {
         throw new ApiError(
