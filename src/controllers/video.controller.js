@@ -223,4 +223,239 @@ const getVideoById = asyncHandler(async (req, res) => {
         );
 });
 
-export { getAllVideos, publishAVideo, getVideoById };
+const updateVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    const { title, description } = req.body;
+
+    //thumbnail from multer
+    const thumbnailLocalPath = req.file?.path;
+
+    //validate video id
+    if (!videoId) {
+        throw new ApiError(
+            400,
+            "Video id is required"
+        )
+    }
+
+    //get existing video
+    const existingVideo = await getVideoByIdModel(videoId);
+
+    if (!existingVideo) {
+        throw new ApiError(
+            400,
+            "Video not found"
+        )
+    }
+
+    //check the owner
+    if (
+        existingVideo.owner !== req.user.id
+    ) {
+        throw new ApiError(
+            403,
+            "Unauthorized request"
+        )
+    }
+
+    //update object
+    const updateData = {};
+
+    //update title
+    if (title) {
+        updateData.title = title;
+    }
+
+    //update description
+    if (description) {
+        updateData.description = description;
+    }
+
+    //update the thumbnail
+    if (thumbnailLocalPath) {
+        const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
+
+        if (!thumbnail?.secure_url) {
+            throw new ApiError(
+                500,
+                "Thumbnail upload failed"
+            )
+        }
+        updateData.thumbnail = thumbnail.secure_url
+    }
+
+    //if nothing to update 
+    if (Object.keys(updateData).length === 0) {
+        throw new ApiError(
+            400,
+            "No fields to update"
+        )
+    }
+
+    //update video in supabase
+    const { data: updateVideo, error } = await supabase
+        .from("videos")
+        .update(updateData)
+        .eq("id", videoId)
+        .select(`
+            *,
+            users:owner(
+            id,
+            username,
+            fullname,
+            avatar
+        )
+    `)
+        .single();
+
+    if (error) {
+        throw new ApiError(
+            500,
+            error.message
+        )
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                updateVideo,
+                "Video updated successfully"
+            )
+        )
+})
+
+const deleteVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    //validate video id
+    if (!videoId) {
+        throw new ApiError(
+            400,
+            "Video id is required"
+        )
+    }
+
+    //get existing video
+    const existingVideo = await getVideoByIdModel(videoId);
+
+    if (!existingVideo) {
+        throw new ApiError(
+            400,
+            "Video not found"
+        )
+    }
+
+    //check the owner
+    if (
+        existingVideo.owner !== req.user.id
+    ) {
+        throw new ApiError(
+            403,
+            "Unauthorized request"
+        )
+    }
+
+    //delete video
+    const { error } = await supabase
+        .from("videos")
+        .delete()
+        .eq("id", videoId)
+
+    if (error) {
+        throw new ApiError(
+            500,
+            error.message
+        )
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Video deleted successfully"
+            )
+        )
+
+})
+
+const togglePublishedStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    //validate video id
+    if (!videoId) {
+        throw new ApiError(
+            400,
+            "Video id is required"
+        )
+    }
+
+    //get existing video
+    const existingVideo = await getVideoByIdModel(videoId);
+
+    if (!existingVideo) {
+        throw new ApiError(
+            400,
+            "Video not found"
+        )
+    }
+
+    //check the owner
+    if (
+        existingVideo.owner !== req.user.id
+    ) {
+        throw new ApiError(
+            403,
+            "Unauthorized request"
+        )
+    }
+
+    //toggle status
+    const newPublishStatus = !existingVideo.is_published;
+
+    //update database
+    const { data: updateVideo, error } = await supabase
+        .from("videos")
+        .update({
+            is_published:
+                newPublishStatus
+        })
+        .eq("id", videoId)
+        .select(`
+            *,
+            users:owner(
+            id,
+            username,
+            fullname,
+            avatar
+        )
+    `)
+        .single();
+
+    if (error) {
+        throw new ApiError(
+            500,
+            error.message
+        )
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                updateVideo,
+                `Video ${newPublishStatus
+                    ? "published"
+                    : "unpublished"
+                }
+                successfully`             
+            )
+        )
+})
+
+export { getAllVideos, publishAVideo, getVideoById, updateVideo, deleteVideo, togglePublishedStatus };
