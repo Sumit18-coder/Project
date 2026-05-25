@@ -18,6 +18,12 @@ This project includes:
 
 ---
 
+# Data Model
+
+View Database Schema / ER Diagram:
+
+[Supabase Database Model](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj)
+
 # Tech Stack
 
 ## Backend
