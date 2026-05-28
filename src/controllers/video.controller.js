@@ -8,6 +8,7 @@ import {
     getVideoById as getVideoByIdModel,
     incrementViews
 } from "../models/video.models.js";
+
 const getAllVideos = asyncHandler(async (req, res) => {
     let {
         page = 1,
