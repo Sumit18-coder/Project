@@ -14,12 +14,12 @@ router.route("/user/:userId").get(
     getUserTweets
 )
 
-router.route(":/tweetId").patch(
+router.route("/:tweetId").patch(
     verifyJwt,
     updateTweet
 )
 
-router.route(":/tweetId").delete(
+router.route("/:tweetId").delete(
     verifyJwt,
     deleteTweet
 )
