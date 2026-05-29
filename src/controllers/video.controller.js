@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import { createVideo, incrementViews } from "../models/video.models.js"
+import { createVideo } from "../models/video.models.js"
 import {
     getVideoById as getVideoByIdModel,
     incrementViews
@@ -163,7 +163,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         title,
         description,
         video_file: videoFile.secure_url,
-        thumbnail: thumbnail.secure_url,
+        thumbnail: thumbnailFile.secure_url,
         duration: videoFile.duration || 0,
         owner: req.user.id,
         is_published: true

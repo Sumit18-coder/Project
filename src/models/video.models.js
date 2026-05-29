@@ -1,4 +1,4 @@
-import supabase from "../config/supabse.js";
+import supabase from "../../config/supabase.js";
 
 export const createVideo = async (videoData) => {
     const {data, error} = await supabase

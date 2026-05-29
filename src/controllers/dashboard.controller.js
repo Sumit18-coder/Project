@@ -101,4 +101,50 @@ const getChannelStats = asyncHandler(async(req, res) => {
          )
 })
 
-export {getChannelStats};
+const getChannelVideos = asyncHandler(async(req, res) => {
+     const { channelId } = req.params;
+
+    // validate channel id
+    if (!channelId) {
+        throw new ApiError(
+            400,
+            "Channel id is required"
+        );
+    }
+
+    //fetch channel videos
+    const {data: videos, error} = await supabase
+          .from("videos")
+          .select(`
+            *,
+            users: owner (
+            id,
+            username,
+            fullname,
+            avatar
+        )
+    `)
+    .eq("owner",channelId)
+    .order("created_at", {
+        ascending: false
+    })
+
+    if(error){
+        throw new ApiError(
+            500,
+            error.message
+        )
+    }
+
+    return res
+         .status(200)
+         .json(
+            new ApiRespnse(
+                200,
+                videos,
+                "Channel videos fetched successfully"
+            )
+         )
+})
+
+export {getChannelStats, getChannelVideos};

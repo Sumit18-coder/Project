@@ -16,6 +16,7 @@ app.use(cookieParser())
 
 //routes import
 import userRouter from "./routes/user.routes.js"
+import videoRouter from "./routes/video.routes.js"
 
 //error middleware import
 import { errorHandler} from "./middlewares/error.middleware.js"
@@ -24,6 +25,7 @@ import { errorHandler} from "./middlewares/error.middleware.js"
 //http://localhost:8000/api/v1/users/register
 app.use("/api/v1/users",userRouter)
 
+app.use("/api/v1/videos", videoRouter)
 //after routes
 app.use(errorHandler)
 

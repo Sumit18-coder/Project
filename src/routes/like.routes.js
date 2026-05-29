@@ -23,3 +23,4 @@ router.route("/videos").get(
     verifyJwt,
     getLikedVideos
 )
+export default router;
