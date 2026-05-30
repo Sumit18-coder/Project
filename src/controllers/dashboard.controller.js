@@ -1,4 +1,4 @@
-import {ApiRespnse} from "../utils/ApiResponse.js"
+import {ApiResponse} from "../utils/ApiResponse.js"
 import {ApiError} from "../utils/ApiError.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import supabase from "../../config/supabase.js";
@@ -93,7 +93,7 @@ const getChannelStats = asyncHandler(async(req, res) => {
     return res
          .status(200)
          .json(
-            new ApiRespnse(
+            new ApiResponse(
                 200,
                 stats,
                 "Channel stats fetched successfully"

@@ -27,10 +27,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         .maybeSingle();
 
 
-    if (error) {
+    if (fetchError) {
         throw new ApiError(
             500,
-            fetchError.error
+            fetchError.message
         )
     }
 
@@ -97,7 +97,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
 
     //validate comment id
-    if (commentId) {
+    if (!commentId) {
         throw new ApiError(
             200,
             "commentId is required"

@@ -213,14 +213,6 @@ const updateComment = asyncHandler(async (req, res) => {
 const deleteComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
 
-    // validate content
-    if (!content?.trim()) {
-        throw new ApiError(
-            400,
-            "Comment content is required"
-        );
-    }
-
      //check if comment exists
     const { data: existingComment, error: fetchError } = await supabase
         .from("comments")
@@ -244,7 +236,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     }
 
     //delete the comment
-    const { data: deletedComment, error: deletedError } = await supabase
+    const { error: deletedError } = await supabase
         .from("comments")
         .delete()
         .eq("id", commentId)
@@ -253,7 +245,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     if (deletedError) {
         throw ApiResponse(
             500,
-            deletedError.error
+            deletedError.message
         )
     }
 

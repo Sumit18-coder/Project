@@ -85,7 +85,7 @@ const getUserPlaylist = asyncHandler(async (req, res) => {
         )
     `)
         .eq("owner", userId)
-        .order("created_by", {
+        .order("created_at", {
             ascending: false
         })
 

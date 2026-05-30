@@ -1,5 +1,5 @@
 import {Router} from "express"
-import { verifyJwt } from "../middlewares/auth.middleware";
+import { verifyJwt } from "../middlewares/auth.middleware.js";
 import {toggleVideoLike,toggleCommentLike,toggleTweetLike, getLikedVideos} from "../controllers/like.controller.js"
 
 const router = Router();
@@ -14,7 +14,7 @@ router.route("/toggle/c/:commentId").post(
     toggleCommentLike
 )
 
-router.route("toggle/t/:tweetId").post(
+router.route("/toggle/t/:tweetId").post(
     verifyJwt,
     toggleTweetLike
 )

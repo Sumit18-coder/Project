@@ -18,7 +18,7 @@ router.route("/:commentId").patch(
     updateComment
 )
 
-router.route(":commentId").delete(
+router.route("/:commentId").delete(
     verifyJwt,
     deleteComment
 )
