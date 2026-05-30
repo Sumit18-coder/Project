@@ -168,7 +168,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
         data: playlist,
         error: playlistError
     } = await supabase
-        .from("playlist")
+        .from("playlists")
         .select("*")
         .eq("id", playlistId)
         .single()
@@ -470,7 +470,7 @@ const updatePlaylist = asyncHandler(async(req, res) => {
        .json(
         new ApiResponse(
             200,
-            updatePlaylist,
+            updatedPlaylist,
             "Playlist updated successfully"
         )
        )
