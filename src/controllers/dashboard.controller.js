@@ -25,7 +25,7 @@ const getChannelStats = asyncHandler(async(req, res) => {
     //get all user videos
     const { data: userVideos, error: userVideoError} = await supabase
           .from("videos")
-          .select("id", views)
+          .select("id, views")
           .eq("owner",userId)
 
     if(userVideoError){
@@ -139,7 +139,7 @@ const getChannelVideos = asyncHandler(async(req, res) => {
     return res
          .status(200)
          .json(
-            new ApiRespnse(
+            new ApiResponse(
                 200,
                 videos,
                 "Channel videos fetched successfully"

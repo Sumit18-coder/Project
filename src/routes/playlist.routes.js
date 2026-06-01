@@ -30,7 +30,7 @@ router.route("/:playlistId/videos/:videoId").delete(
 router.route("/:playlistId").delete(
     verifyJwt,
     deletePlaylist
-) 
+)
 
 router.route("/:playlistId").patch(
     verifyJwt,
